@@ -1,0 +1,148 @@
+ // Bu uygulama .net framework 6.0 da yazılmış c# console uygulamasıdır. 
+
+using Newtonsoft.Json;
+using System;
+using System.IO;
+using System.Net.Http;
+using System.Net.Http.Headers;
+using System.Threading.Tasks;
+
+class Program
+{
+    // Bir görevin temsil edildiği sınıf
+    public class TodoItem
+    {
+        public bool Completed { get; set; }  // Görev tamamlandı mı?
+        public string Desc { get; set; }     // Görev açıklaması
+        public int Id { get; set; }          // Görev kimliği
+    }
+
+    static async Task Main(string[] args)
+    {
+        // Komutu al
+        string command = args[0];
+
+        switch (command)
+        {
+            case "list":
+                await ListTodos();  // "list" komutuna göre görev listesini al
+                break;
+
+            case "search":
+                string query = args[1];
+                await SearchTodos(query);  // "search" komutuna göre görev ara
+                break;
+
+            case "delete":
+                string id = args[1];
+                await DeleteTodo(id);  // "delete" komutuna göre görev sil
+                break;
+
+            case "complete":
+                string zipFilePath = args[1];
+                string code = args[2];
+                await CompleteChallenge(zipFilePath, code);  // "complete" komutuna göre meydan okumayı tamamla
+                break;
+
+            default:
+                Console.WriteLine("Invalid command. Supported commands: list, search, delete, complete");
+                break;
+        }
+        
+        Console.ReadLine();
+    }
+
+    static async Task ListTodos()
+    {
+        using (var client = new HttpClient())
+        {
+            string token = "35241b86e43866f525d4fb79f11b8a52"; // Token'ınızı buraya ekleyin
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+            HttpResponseMessage response = await client.GetAsync("https://challenge.photier.com/todos");
+
+            if (response.IsSuccessStatusCode)
+            {
+                string content = await response.Content.ReadAsStringAsync();
+                Console.WriteLine(content);
+            }
+            else
+            {
+                Console.WriteLine($"Failed to fetch todos. Status Code: {response.StatusCode}");
+            }
+        }
+    }
+
+    static async Task SearchTodos(string query)
+    {
+        using (var client = new HttpClient())
+        {
+            string token = "35241b86e43866f525d4fb79f11b8a52"; // Token'ınızı buraya ekleyin
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+            string url = $"https://challenge.photier.com/todos/search?query={query}";
+            HttpResponseMessage response = await client.GetAsync(url);
+
+            if (response.IsSuccessStatusCode)
+            {
+                string content = await response.Content.ReadAsStringAsync();
+                Console.WriteLine(content);
+            }
+            else
+            {
+                Console.WriteLine($"Failed to search todos. Status Code: {response.StatusCode}");
+            }
+        }
+    }
+
+    static async Task DeleteTodo(string id)
+    {
+        using (var client = new HttpClient())
+        {
+            string token = "35241b86e43866f525d4fb79f11b8a52"; // Token'ınızı buraya ekleyin
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+            string url = $"https://challenge.photier.com/todos?id={id}";
+
+            HttpResponseMessage response = await client.DeleteAsync(url);
+
+            if (response.IsSuccessStatusCode)
+            {
+                string content = await response.Content.ReadAsStringAsync();
+                Console.WriteLine(content);
+                Console.WriteLine($"Todo with id {id} has been deleted.");
+            }
+            else
+            {
+                Console.WriteLine($"Failed to delete todo. Status Code: {response.StatusCode}");
+            }
+        }
+    }
+
+    static async Task CompleteChallenge(string zipFilePath, string code)
+    {
+        using (var client = new HttpClient())
+        {
+            string token = "35241b86e43866f525d4fb79f11b8a52"; // Token'ınızı buraya ekleyin
+            client.DefaultRequestHeaders.Authorization = new AuthenticationHeaderValue("Bearer", token);
+
+            MultipartFormDataContent content = new MultipartFormDataContent();
+            FileStream zipStream = new FileStream(zipFilePath, FileMode.Open);
+            content.Add(new StreamContent(zipStream), "file", Path.GetFileName(zipFilePath));
+
+            // Şifreyi eklemek için şu şekilde yapabilirsiniz
+            content.Add(new StringContent(code), "code");
+
+            HttpResponseMessage response = await client.PostAsync("https://challenge.photier.com/complete", content);
+
+            if (response.IsSuccessStatusCode)
+            {
+                Console.WriteLine("Challenge completed successfully.");
+            }
+            else
+            {
+                Console.WriteLine($"Failed to complete challenge. Status Code: {response.StatusCode}");
+            }
+        }
+    }
+}
